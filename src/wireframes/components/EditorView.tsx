@@ -49,7 +49,7 @@ export const EditorViewInner = ({ diagram, spacing }: EditorViewProps & { diagra
     const zoom = useStore(s => s.ui.zoom);
     const zoomedSize = editorSize.mul(zoom);
     const [menuVisible, setMenuVisible] = React.useState(false);
-
+    
     const doChangeItemsAppearance = useEventCallback((diagram: DiagramRef, visuals: ItemsRef, key: string, value: any) => {
         dispatch(changeItemsAppearance(diagram, visuals, key, value));
     });

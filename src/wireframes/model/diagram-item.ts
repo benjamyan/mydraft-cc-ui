@@ -20,6 +20,9 @@ type ItemProps = {
     // The unique id for each item.
     id: string;
 
+    // title of the shape/group
+    title: string;
+
     // The locking state.
     isLocked?: boolean;
 
@@ -168,6 +171,7 @@ export class DiagramItem extends Record<Props> implements Shape {
             id,
             childCache: {},
             childIds,
+            title: 'Group #', // BJY TODO
             type: 'Group',
             rotation: rotation || Rotation.ZERO,
         };
@@ -187,6 +191,7 @@ export class DiagramItem extends Record<Props> implements Shape {
             constraint,
             renderCache: {},
             renderer,
+            title: renderer, // BJY TODO
             transform: createTransform(w, h),
             type: 'Shape',
         };
@@ -271,6 +276,16 @@ export class DiagramItem extends Record<Props> implements Shape {
         } else {
             return this.transform;
         }
+    }
+
+    // BJY 
+    public get title() {
+        return this.get('title');
+    }
+    // BJY 
+    public setTitle(title: string) {
+        console.log('setTitle');
+        console.log(title);
     }
 
     public transformByBounds(oldBounds: Transform, newBounds: Transform) {

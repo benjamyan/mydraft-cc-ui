@@ -91,6 +91,8 @@ export const Editor = React.memo((props: EditorProps) => {
     const adornersSelect = React.useRef<svg.Container>();
     const adornersTransform = React.useRef<svg.Container>();
     const diagramTools = React.useRef<svg.Element>();
+    const textAdornerLayer = React.useRef<any>();
+
     const renderMainLayer = React.useRef<svg.Container>();
     const renderMasterLayer = React.useRef<svg.Container>();
     const [interactionService, setInteractionService] = React.useState<InteractionService>();
@@ -177,6 +179,7 @@ export const Editor = React.memo((props: EditorProps) => {
                             onPreview={doPreview}
                             onPreviewEnd={doPreviewEnd}
                             onTransformItems={onTransformItems}
+                            textAdorner={textAdornerLayer.current}
                             selectedDiagram={diagram}
                             selectedItems={selectedItems}
                             viewSize={viewSize}
@@ -196,6 +199,8 @@ export const Editor = React.memo((props: EditorProps) => {
 
                     {onChangeItemsAppearance &&
                         <TextAdorner
+                            ref={ textAdornerLayer }
+                            transformAdorners={adornersTransform.current!}
                             interactionService={interactionService}
                             onChangeItemsAppearance={onChangeItemsAppearance}
                             selectedDiagram={diagram}

@@ -12,8 +12,9 @@ import { Diagram, DiagramItem, SnapManager, SnapMode, Transform } from '@app/wir
 import { SVGRenderer2 } from '../shapes/utils/svg-renderer2';
 import { InteractionOverlays } from './interaction-overlays';
 import { InteractionHandler, InteractionService, SvgEvent } from './interaction-service';
+import { TextAdorner } from './TextAdorner';
 
-enum Mode { None, Resize, Move, Rotate }
+enum Mode { None, Resize, Move, Rotate, Title }
 
 const DEBUG_SIDES = false;
 const DEBUG_DISTANCES = false;
@@ -48,6 +49,9 @@ export interface TransformAdornerProps {
 
     // A function to transform a set of items.
     onTransformItems: (diagram: Diagram, items: DiagramItem[], oldBounds: Transform, newBounds: Transform) => void;
+
+    // BJY
+    textAdorner: TextAdorner;
 }
 
 export class TransformAdorner extends React.PureComponent<TransformAdornerProps> implements InteractionHandler {
@@ -67,15 +71,27 @@ export class TransformAdorner extends React.PureComponent<TransformAdornerProps>
     private startPosition = Vec2.ZERO;
     private startTransform = Transform.ZERO;
     private transform = Transform.ZERO;
+    // BJY
+    private titleShape: svg.Element = null!;
+    private titleText: string = null!;
+    // private invokeTextAdorner: TextAdorner['onLabelClick'] = null!;
 
     constructor(props: TransformAdornerProps) {
         super(props);
 
         this.createRotateShape();
+
+        // BJY
+        this.createTitleShape();
+
         this.createMoveShape();
         this.createResizeShapes();
-        this.allElements = [...this.resizeShapes, this.moveShape, this.rotateShape];
+
+
+        // BJY
+        this.allElements = [...this.resizeShapes, this.moveShape, this.rotateShape, this.titleShape];
         this.hideShapes();
+        
 
         this.props.interactionService.addHandler(this);
 
@@ -85,7 +101,6 @@ export class TransformAdorner extends React.PureComponent<TransformAdornerProps>
     public componentWillUnmount() {
         this.props.interactionService.removeHandler(this);
     }
-
     public componentDidUpdate(prevProps: TransformAdornerProps) {
         if (this.props.selectedDiagram.selectedIds !== prevProps.selectedDiagram.selectedIds) {
             this.rotation = Rotation.ZERO;
@@ -97,6 +112,13 @@ export class TransformAdorner extends React.PureComponent<TransformAdornerProps>
         if (this.hasSelection()) {
             this.calculateInitializeTransform();
             this.calculateResizeRestrictions();
+
+            // BJY
+            this.updateTitleTextShape();
+            // if (!!this.props.textAdorner && this.props.textAdorner.onLabelClick) {
+            //     this.invokeTextAdorner = this.props.textAdorner.onLabelClick;
+            // }
+            
             this.renderShapes();
         } else {
             this.hideShapes();
@@ -248,7 +270,7 @@ export class TransformAdorner extends React.PureComponent<TransformAdornerProps>
             next(event);
             return;
         }
-
+        
         let hitItem = this.hitTest(event.position);
 
         if (!hitItem) {
@@ -275,6 +297,20 @@ export class TransformAdorner extends React.PureComponent<TransformAdornerProps>
             this.manipulationMode = Mode.Move;
         } else if (hitItem === this.rotateShape) {
             this.manipulationMode = Mode.Rotate;
+        } else if (hitItem === this.titleShape) {
+            this.manipulationMode = Mode.Title;
+            
+            // this.props.textAdorner.onLabelClick({
+            //     initiator: event,
+            //     label: this.props.selectedDiagram, 
+            //     transform: this.transform
+            // });
+
+            // this.props.textAdorner.onLabelClick({
+            //     initiator: event,
+            //     label: this.titleShape, 
+            //     transform: this.transform
+            // });
         } else {
             this.manipulationMode = Mode.Resize;
             this.manipulationOffset = hitItem['offset'];
@@ -475,7 +511,7 @@ export class TransformAdorner extends React.PureComponent<TransformAdornerProps>
 
         this.stopEverything();
     }
-
+    
     private stopEverything() {
         this.props.onPreviewEnd();
 
@@ -496,7 +532,6 @@ export class TransformAdorner extends React.PureComponent<TransformAdornerProps>
         }
 
         const size = this.transform.size;
-
         const rotation = this.transform.rotation.degree;
         const position = this.transform.position;
 
@@ -523,7 +558,6 @@ export class TransformAdorner extends React.PureComponent<TransformAdornerProps>
         }
 
         this.rotateShape.show();
-
         SVGHelper.transform(this.rotateShape, {
             x: position.x - 8,
             y: position.y - 8 - size.y * 0.5 - 30,
@@ -532,8 +566,20 @@ export class TransformAdorner extends React.PureComponent<TransformAdornerProps>
             rotation,
         }, true, true);
 
-        this.moveShape.show();
+        // BJY
+        this.titleShape.show();
+        const titleW = 40;
+        SVGHelper.transform(this.titleShape, {
+            x: position.x - (titleW / 2),
+            y: position.y + (size.y * 0.5) + 16,
+            w: titleW,
+            h: 16,
+            rx: position.x,
+            ry: position.y,
+            rotation,
+        }, true, true);
 
+        this.moveShape.show();
         SVGHelper.transform(this.moveShape, {
             x: position.x - 0.5 * size.x - 1,
             y: position.y - 0.5 * size.y - 1,
@@ -585,6 +631,35 @@ export class TransformAdorner extends React.PureComponent<TransformAdornerProps>
 
             this.resizeShapes.push(resizeShape);
         }
+    }
+
+    // BJY
+    private createTitleShape() {
+        // console.log(`createTitleShape`);
+
+        const titleShape =
+            this.props.adorners
+                .text(this.titleText)
+                .fill(TRANSFORMER_STROKE_COLOR);
+
+        this.props.interactionService.setCursor(titleShape, 'pointer');
+        
+        this.titleShape = titleShape;
+    }
+    // BJY
+    public updateTitleTextInput() {
+        console.log(`updateTitleTextInput`);
+    }
+    // BJY
+    private updateTitleTextShape() {
+        // console.log(`updateTitleTextShape`);
+
+        this.titleText = (
+            this.props.selectedItems
+                .map( (values)=> values.title )
+                .join(', ')
+        );
+        this.titleShape.node.innerHTML =  this.titleText;
     }
 
     public render(): any {
